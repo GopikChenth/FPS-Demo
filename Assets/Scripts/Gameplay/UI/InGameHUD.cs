@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
@@ -251,7 +252,7 @@ namespace Unity.MP_FPS
             bool isCrouched = playerData.ControllerState.IsCrouching;
             bool isSliding = playerData.ControllerState.IsSliding;
             bool isSprinting = playerData.ControllerState.IsSprinting;
-            bool isAirborne = playerData.ControllerState.MovementType != MovementType.Standing && !isSliding;
+            bool isAirborne = playerData.ControllerState.MovementType != FirstPersonController.MovementType.Standing && !isSliding;
 
             float stanceMult = isAirborne ? 2.2f : (isSliding ? 2.0f : (isSprinting ? 1.6f : (isCrouched ? 0.75f : 1.0f)));
             float speedMult = 1.0f + Mathf.Clamp01(playerData.ControllerState.AnimatorTargetSpeed / 6.0f) * 0.4f;
@@ -271,7 +272,8 @@ namespace Unity.MP_FPS
             m_Reticle.style.height = m_CurrentReticleSize;
 
             // 3. ADS Crosshair Fading (Fade out reticle during right-click aim)
-            bool isAiming = (playerData.InputFlags & (1 << 7)) != 0 || (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.rightButton.isPressed);
+            bool isAiming = (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.rightButton.isPressed) ||
+                            (UnityEngine.InputSystem.Gamepad.current != null && UnityEngine.InputSystem.Gamepad.current.leftTrigger.isPressed);
             float currentOpacity = m_Reticle.style.opacity.value;
             float targetOpacity = isAiming ? 0f : 1f;
             m_Reticle.style.opacity = Mathf.Lerp(currentOpacity, targetOpacity, 15f * Time.deltaTime);

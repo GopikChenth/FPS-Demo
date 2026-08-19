@@ -61,6 +61,7 @@ namespace Unity.MP_FPS
         private Vector3 m_RecoilRot;
         private uint _lastProcessedClientShotTick = 0;
         private float m_CurrentADSFactor = 0f;
+        private WeaponAttachmentController m_AttachmentController;
 
         private CinemachineTargetGroup m_TargetGroup;
         private CinemachinePositionComposer m_PositionComposer;
@@ -239,9 +240,16 @@ namespace Unity.MP_FPS
             var controllerState = predictedPlayerGhost.ControllerState;
             if (Role == MultiplayerRole.ClientOwned)
             {
+                if (m_AttachmentController == null)
+                {
+                    m_AttachmentController = GetComponentInChildren<WeaponAttachmentController>();
+                }
+
                 bool isAiming = (Mouse.current != null && Mouse.current.rightButton.isPressed) || 
                                 (Gamepad.current != null && Gamepad.current.leftTrigger.isPressed);
-                m_CurrentADSFactor = Mathf.MoveTowards(m_CurrentADSFactor, isAiming ? 1.0f : 0.0f, 6.0f * deltaTime);
+
+                float adsSpeed = 6.0f * (m_AttachmentController != null ? m_AttachmentController.TotalADSSpeedMultiplier : 1.0f);
+                m_CurrentADSFactor = Mathf.MoveTowards(m_CurrentADSFactor, isAiming ? 1.0f : 0.0f, adsSpeed * deltaTime);
 
                 // 1. Procedural Camera Roll (Strafe & Slide Banking)
                 bool isMoving = (controllerState.AnimatorTargetSpeed > 0.1f);
@@ -278,14 +286,16 @@ namespace Unity.MP_FPS
                 currentCamPos.x = Mathf.MoveTowards(currentCamPos.x, bobX, 8.0f * deltaTime);
                 CameraTarget.localPosition = currentCamPos;
 
-                // 3. Dynamic FOV Scaling (with ADS Zoom)
+                // 3. Dynamic FOV Scaling (with ADS Optic Zoom)
                 if (m_PlayerCamera != null)
                 {
                     float aspect = m_PlayerCamera.aspect > 0 ? m_PlayerCamera.aspect : (16f / 9f);
                     m_BaseFOV = Utils.HorizontalToVerticalFOV(m_HorizontalFOV, aspect);
 
                     float sprintFOV = controllerState.IsSprinting ? (m_BaseFOV * 1.08f) : (controllerState.IsSliding ? (m_BaseFOV * 1.05f) : m_BaseFOV);
-                    float targetFOV = Mathf.Lerp(sprintFOV, m_BaseFOV * 0.75f, m_CurrentADSFactor);
+                    float defaultZoomFOV = m_BaseFOV * 0.75f;
+                    float targetZoomFOV = m_AttachmentController != null ? m_AttachmentController.GetOpticZoomFOV(defaultZoomFOV) : defaultZoomFOV;
+                    float targetFOV = Mathf.Lerp(sprintFOV, targetZoomFOV, m_CurrentADSFactor);
                     m_PlayerCamera.fieldOfView = Mathf.Lerp(m_PlayerCamera.fieldOfView, targetFOV, 10f * deltaTime);
                 }
 
@@ -298,14 +308,15 @@ namespace Unity.MP_FPS
                 m_CurrentSwayRot = Quaternion.Slerp(m_CurrentSwayRot, targetSwayRot, 12f * deltaTime);
                 m_CurrentSwayPos = Vector3.Lerp(m_CurrentSwayPos, targetSwayPos, 12f * deltaTime);
 
-                // 5. Procedural Harmonic Recoil Spring Kick
+                // 5. Procedural Harmonic Recoil Spring Kick (Scaled by Attachments)
                 if (predictedPlayerGhost.LastShotTick > _lastProcessedClientShotTick)
                 {
-                    float kickPitch = UnityEngine.Random.Range(-2.0f, -3.0f);
-                    float kickYaw = UnityEngine.Random.Range(-0.6f, 0.6f);
-                    float kickRoll = UnityEngine.Random.Range(-0.8f, 0.8f);
+                    float recoilMultiplier = m_AttachmentController != null ? m_AttachmentController.TotalRecoilMultiplier : 1.0f;
+                    float kickPitch = UnityEngine.Random.Range(-2.0f, -3.0f) * recoilMultiplier;
+                    float kickYaw = UnityEngine.Random.Range(-0.6f, 0.6f) * recoilMultiplier;
+                    float kickRoll = UnityEngine.Random.Range(-0.8f, 0.8f) * recoilMultiplier;
                     m_RecoilRot += new Vector3(kickPitch, kickYaw, kickRoll);
-                    m_RecoilPos += new Vector3(0f, 0.003f, -0.025f);
+                    m_RecoilPos += new Vector3(0f, 0.003f, -0.025f) * recoilMultiplier;
                     _lastProcessedClientShotTick = predictedPlayerGhost.LastShotTick;
                 }
 
@@ -317,7 +328,8 @@ namespace Unity.MP_FPS
                 if (m_OwnerVisuals != null)
                 {
                     // ADS Sight Alignment (smoothly centers the weapon for optic aim)
-                    Vector3 adsOffset = new Vector3(-0.045f, 0.022f, 0.02f);
+                    Vector3 defaultAdsOffset = new Vector3(-0.045f, 0.022f, 0.02f);
+                    Vector3 adsOffset = m_AttachmentController != null ? m_AttachmentController.GetCustomADSOffset(defaultAdsOffset) : defaultAdsOffset;
                     Vector3 basePosWithADS = Vector3.Lerp(m_InitialOwnerVisualsPos, m_InitialOwnerVisualsPos + adsOffset, m_CurrentADSFactor);
 
                     m_OwnerVisuals.transform.localPosition = basePosWithADS + m_CurrentSwayPos + m_RecoilPos;

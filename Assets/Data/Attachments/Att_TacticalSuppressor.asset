@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d, type: 3}
+  m_Name: Att_TacticalSuppressor
+  m_EditorClassIdentifier: Assembly-CSharp::Unity.MP_FPS.AttachmentSO
+  AttachmentName: CQB Tactical Suppressor
+  Description: Muffles gunshot acoustics, hides muzzle flash, and reduces vertical recoil at the cost of slight ADS speed.
+  Slot: 0
+  AttachmentPrefab: {fileID: 0}
+  LocalPositionOffset: {x: 0, y: 0, z: 0}
+  LocalRotationOffset: {x: 0, y: 0, z: 0}
+  LocalScale: {x: 1, y: 1, z: 1}
+  RecoilMultiplier: 0.85
+  ADSSpeedMultiplier: 0.92
+  MovementSpeedMultiplier: 0.98
+  MagazineCapacityDelta: 0
+  OpticZoomFOV: 0
+  CustomADSOffset: {x: 0, y: 0, z: 0}
+  FireSoundOverride: {fileID: 0}
+  HideMuzzleFlash: 1
